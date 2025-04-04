@@ -12,7 +12,6 @@ import ProductSearch from './components/ProductSearch';
 import DiscountSelector from './components/DiscountSelector';
 import QuoteTable from './components/QuoteTable';
 import QuoteGenerator from './components/QuoteGenerator';
-import SupabaseTest from './components/SupabaseTest';
 import { Product, QuoteItem, Discount } from './types';
 
 function App() {
@@ -106,8 +105,6 @@ function App() {
               Search for products, select quantities, apply discounts, and generate formatted quotes for email.
             </Typography>
           </Paper>
-          
-          <SupabaseTest />
           
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Box sx={{ flex: 1 }}>

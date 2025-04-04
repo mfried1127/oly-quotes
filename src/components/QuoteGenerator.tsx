@@ -10,7 +10,9 @@ import {
   Box,
   TextField,
   Snackbar,
-  Alert
+  Alert,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { QuoteItem } from '../types';
@@ -24,6 +26,8 @@ const QuoteGenerator: React.FC<QuoteGeneratorProps> = ({ items, discountName }) 
   const [open, setOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [additionalNotes, setAdditionalNotes] = useState('');
+  const [showListPrice, setShowListPrice] = useState(true);
+  const [useOutlookFormat, setUseOutlookFormat] = useState(true);
 
   const handleOpen = () => {
     setOpen(true);
@@ -46,25 +50,71 @@ const QuoteGenerator: React.FC<QuoteGeneratorProps> = ({ items, discountName }) 
     const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
     const date = new Date().toLocaleDateString();
     
-    // Create the quote header
-    let quoteText = `QUOTE SUMMARY (${date})\n`;
-    quoteText += `Discount Applied: ${discountName}\n\n`;
+    // Calculate multiplier from first item if available
+    const multiplier = items.length > 0 && items[0].list_price > 0 
+      ? (items[0].discountedPrice / items[0].list_price).toFixed(4)
+      : '1.0000';
     
-    // Create the table header
-    quoteText += `| Part Number | Description | Qty | Unit Price | Line Total |\n`;
-    quoteText += `|-------------|-------------|-----|------------|------------|\n`;
+    let quoteText = '';
     
-    // Add each item
-    items.forEach(item => {
-      quoteText += `| ${item.part_number} | ${item.description} | ${item.quantity} | $${item.discountedPrice.toFixed(2)} | $${item.lineTotal.toFixed(2)} |\n`;
-    });
-    
-    // Add subtotal
-    quoteText += `\nSubtotal: $${subtotal.toFixed(2)}\n`;
-    
-    // Add additional notes if any
-    if (additionalNotes.trim()) {
-      quoteText += `\nAdditional Notes:\n${additionalNotes}\n`;
+    if (useOutlookFormat) {
+      // Create the quote header in Outlook-friendly format
+      quoteText = `QUOTE SUMMARY (${date})\r\n`;
+      quoteText += `Discount Applied: ${discountName}${discountName !== 'None' ? ` (x${multiplier})` : ''}\r\n\r\n`;
+      
+      // Create the table header in Outlook-friendly format
+      if (showListPrice) {
+        quoteText += `Part Number\tDescription\tQty\tList Price\tUnit Price\tLine Total\r\n`;
+      } else {
+        quoteText += `Part Number\tDescription\tQty\tUnit Price\tLine Total\r\n`;
+      }
+      
+      // Add each item in tab-delimited format
+      items.forEach(item => {
+        if (showListPrice) {
+          quoteText += `${item.part_number}\t${item.description}\t${item.quantity}\t$${item.list_price.toFixed(2)}\t$${item.discountedPrice.toFixed(2)}\t$${item.lineTotal.toFixed(2)}\r\n`;
+        } else {
+          quoteText += `${item.part_number}\t${item.description}\t${item.quantity}\t$${item.discountedPrice.toFixed(2)}\t$${item.lineTotal.toFixed(2)}\r\n`;
+        }
+      });
+      
+      // Add subtotal
+      quoteText += `\r\nSubtotal: $${subtotal.toFixed(2)}\r\n`;
+      
+      // Add additional notes if any
+      if (additionalNotes.trim()) {
+        quoteText += `\r\nAdditional Notes:\r\n${additionalNotes}\r\n`;
+      }
+    } else {
+      // Create the quote header in markdown format
+      quoteText = `QUOTE SUMMARY (${date})\n`;
+      quoteText += `Discount Applied: ${discountName}${discountName !== 'None' ? ` (x${multiplier})` : ''}\n\n`;
+      
+      // Create the table header in markdown format
+      if (showListPrice) {
+        quoteText += `| Part Number | Description | Qty | List Price | Unit Price | Line Total |\n`;
+        quoteText += `|-------------|-------------|-----|------------|------------|------------|\n`;
+      } else {
+        quoteText += `| Part Number | Description | Qty | Unit Price | Line Total |\n`;
+        quoteText += `|-------------|-------------|-----|------------|------------|\n`;
+      }
+      
+      // Add each item
+      items.forEach(item => {
+        if (showListPrice) {
+          quoteText += `| ${item.part_number} | ${item.description} | ${item.quantity} | $${item.list_price.toFixed(2)} | $${item.discountedPrice.toFixed(2)} | $${item.lineTotal.toFixed(2)} |\n`;
+        } else {
+          quoteText += `| ${item.part_number} | ${item.description} | ${item.quantity} | $${item.discountedPrice.toFixed(2)} | $${item.lineTotal.toFixed(2)} |\n`;
+        }
+      });
+      
+      // Add subtotal
+      quoteText += `\nSubtotal: $${subtotal.toFixed(2)}\n`;
+      
+      // Add additional notes if any
+      if (additionalNotes.trim()) {
+        quoteText += `\nAdditional Notes:\n${additionalNotes}\n`;
+      }
     }
     
     return quoteText;
@@ -108,6 +158,27 @@ const QuoteGenerator: React.FC<QuoteGeneratorProps> = ({ items, discountName }) 
           </Button>
         </DialogTitle>
         <DialogContent dividers>
+          <Box sx={{ mb: 2 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={showListPrice}
+                  onChange={(e) => setShowListPrice(e.target.checked)}
+                />
+              }
+              label="Show List Price"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={useOutlookFormat}
+                  onChange={(e) => setUseOutlookFormat(e.target.checked)}
+                />
+              }
+              label="Outlook-friendly Format"
+            />
+          </Box>
+          
           <TextField
             label="Additional Notes (Optional)"
             multiline

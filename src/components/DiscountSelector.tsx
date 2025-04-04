@@ -68,7 +68,7 @@ const DiscountSelector: React.FC<DiscountSelectorProps> = ({
           >
             {discounts.map((discount) => (
               <MenuItem key={discount.id} value={discount.id}>
-                {discount.name} ({(discount.value * 100).toFixed(0)}%)
+                {discount.name} (x{(1 - discount.value).toFixed(4)})
               </MenuItem>
             ))}
           </Select>
