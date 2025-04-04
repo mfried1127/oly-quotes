@@ -24,6 +24,7 @@ const DiscountSelector: React.FC<DiscountSelectorProps> = ({
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Only fetch discounts once when component mounts
   useEffect(() => {
     const loadDiscounts = async () => {
       setLoading(true);
@@ -43,7 +44,9 @@ const DiscountSelector: React.FC<DiscountSelectorProps> = ({
     };
 
     loadDiscounts();
-  }, [onDiscountChange, selectedDiscountId]);
+    // Remove onDiscountChange and selectedDiscountId from dependencies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleDiscountChange = (event: SelectChangeEvent<string>) => {
     const discountId = event.target.value;

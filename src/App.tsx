@@ -6,7 +6,11 @@ import {
   CssBaseline, 
   AppBar, 
   Toolbar,
-  Paper
+  Paper,
+  TextField,
+  FormControlLabel,
+  Checkbox,
+  InputAdornment
 } from '@mui/material';
 import ProductSearch from './components/ProductSearch';
 import DiscountSelector from './components/DiscountSelector';
@@ -18,6 +22,8 @@ function App() {
   const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
   const [selectedDiscountId, setSelectedDiscountId] = useState<string | null>(null);
   const [selectedDiscount, setSelectedDiscount] = useState<Discount | null>(null);
+  const [showCustomerPrice, setShowCustomerPrice] = useState(false);
+  const [profitMargin, setProfitMargin] = useState('0.20');
 
   // Calculate line totals whenever items or discount changes
   useEffect(() => {
@@ -84,6 +90,39 @@ function App() {
     setSelectedDiscountId(discount?.id || null);
   };
 
+  const handleProfitMarginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Remove any non-numeric characters except decimal point
+    const value = e.target.value.replace(/[^0-9.]/g, '');
+    
+    // Ensure the value is a valid number between 0 and 1
+    const numValue = parseFloat(value);
+    if (!isNaN(numValue) && numValue >= 0 && numValue < 1) {
+      setProfitMargin(value);
+    } else if (value === '' || value === '.') {
+      setProfitMargin(value);
+    }
+  };
+
+  const calculateCustomerPrice = (discountedPrice: number): number => {
+    const margin = parseFloat(profitMargin) || 0;
+    if (margin <= 0) return discountedPrice;
+    
+    // Customer Price = Discounted Price / (1 - Profit Margin)
+    return discountedPrice / (1 - margin);
+  };
+
+  // Calculate customer subtotal
+  const customerSubtotal = quoteItems.reduce(
+    (sum, item) => sum + (calculateCustomerPrice(item.discountedPrice) * item.quantity), 
+    0
+  );
+
+  // Calculate regular subtotal
+  const subtotal = quoteItems.reduce(
+    (sum, item) => sum + item.lineTotal, 
+    0
+  );
+
   return (
     <>
       <CssBaseline />
@@ -125,9 +164,71 @@ function App() {
             onRemoveItem={handleRemoveItem}
           />
           
+          {quoteItems.length > 0 && (
+            <Paper elevation={3} sx={{ p: 2, mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Customer Price through Distribution
+              </Typography>
+              
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={showCustomerPrice}
+                      onChange={(e) => setShowCustomerPrice(e.target.checked)}
+                    />
+                  }
+                  label="Show Customer Price"
+                />
+                
+                {showCustomerPrice && (
+                  <TextField
+                    label="Profit Margin"
+                    value={profitMargin}
+                    onChange={handleProfitMarginChange}
+                    variant="outlined"
+                    size="small"
+                    sx={{ width: '150px' }}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">%</InputAdornment>,
+                    }}
+                    helperText="Enter as decimal (e.g., 0.20 for 20%)"
+                  />
+                )}
+              </Box>
+              
+              {showCustomerPrice && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Distribution Profit Margin: {(parseFloat(profitMargin) * 100).toFixed(0)}%
+                  </Typography>
+                  
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body1">Your Subtotal:</Typography>
+                      <Typography variant="body1" fontWeight="bold">${subtotal.toFixed(2)}</Typography>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body1">Customer Subtotal:</Typography>
+                      <Typography variant="body1" fontWeight="bold">${customerSubtotal.toFixed(2)}</Typography>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body1">Distribution Profit:</Typography>
+                      <Typography variant="body1" fontWeight="bold">${(customerSubtotal - subtotal).toFixed(2)}</Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+            </Paper>
+          )}
+          
           <QuoteGenerator 
             items={quoteItems} 
             discountName={selectedDiscount?.name || 'None'} 
+            showCustomerPrice={showCustomerPrice}
+            profitMargin={profitMargin}
           />
         </Box>
       </Container>
