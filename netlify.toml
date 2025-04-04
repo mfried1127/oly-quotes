@@ -1,5 +1,5 @@
 [build]
-  base = "oly-quotes/"
+  base = "/"
   publish = "build/"
   command = "npm run build"
 
